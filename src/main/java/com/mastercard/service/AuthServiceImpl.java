@@ -74,35 +74,18 @@ public class AuthServiceImpl implements AuthService {
         LOGGER.info("Superadmin '{}' has been created successfully.", AdminUsername);
     }
 
-//    @Override
-//    public LoginResponse login(AuthRequest request) {
-//        User authenticatedUser = authenticateUser(request.getUsername(), request.getPassword());
-//
-//        String token = jwtService.generateToken(authenticatedUser);
-//
-//        return LoginResponse.builder()
-//                .token(token)
-//                .username(authenticatedUser.getUsername())
-//                .privilege(authenticatedUser.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList())
-//                .build();
-//    }
-
     public LoginResponse login(AuthRequest request) {
-        // Hash password yang diinput user menggunakan MD5
         String hashedPassword = encodeMD5(request.getPassword());
 
-        // Cari user di database berdasarkan username
         Optional<User> userOptional = userRepository.findByUsername(request.getUsername());
 
         if (userOptional.isPresent()) {
             User user = userOptional.get();
 
-            // Cocokkan password yang sudah di-hash
             if (!user.getPassword().equals(hashedPassword)) {
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
             }
 
-            // Generate token
             String token = jwtService.generateToken(user);
 
             return LoginResponse.builder()
@@ -111,10 +94,8 @@ public class AuthServiceImpl implements AuthService {
                     .privilege(user.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList())
                     .build();
         }
-
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
     }
-
 
     private User authenticateUser(String username, String password) {
         Authentication authentication = authenticationManager.authenticate(

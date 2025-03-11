@@ -1,6 +1,5 @@
 package com.mastercard.config;
 
-import com.mastercard.security.CustomPasswordEncoder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
