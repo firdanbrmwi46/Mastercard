@@ -22,17 +22,6 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public void migratePasswordsToBCrypt() {
-        List<User> users = userRepository.findAll();
-        for (User user : users) {
-            if (!user.getPassword().startsWith("$2a$")) {
-                String hashedPassword = passwordEncoder.encode(user.getPassword());
-                user.setPassword(hashedPassword);
-                userRepository.save(user);
-            }
-        }
-    }
-
     @Override
     public Object getByUserId(Long id) {
         return (User) userRepository.findById(id)
@@ -49,4 +38,16 @@ public class UserServiceImpl implements UserService {
                 ))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
     }
+
+//    @Override
+//    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+//        User user = userRepository.findByUsername(username)
+//                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+//
+//        return new org.springframework.security.core.userdetails.User(
+//                user.getUsername(),
+//                user.getPassword(),
+//                user.getAuthorities()
+//        );
+//    }
 }

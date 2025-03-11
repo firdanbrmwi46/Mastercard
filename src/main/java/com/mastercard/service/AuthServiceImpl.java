@@ -13,6 +13,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,6 +25,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Optional;
 
@@ -63,7 +66,7 @@ public class AuthServiceImpl implements AuthService {
         User user = User.builder()
                 .username(AdminUsername)
                 .password(passwordEncoder.encode(AdminPassword))
-                .privilege(List.of(superadmin, adminBD, md, leaderMD, adminValidator, leaderValidator)) // ✅ Ganti `role` jadi `privilege`
+                .privilege(List.of(superadmin, adminBD, md, leaderMD, adminValidator, leaderValidator))
                 .isEnable(true)
                 .build();
 
@@ -84,28 +87,34 @@ public class AuthServiceImpl implements AuthService {
 //                .build();
 //    }
 
-    @Override
     public LoginResponse login(AuthRequest request) {
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password"));
+        // Hash password yang diinput user menggunakan MD5
+        String hashedPassword = encodeMD5(request.getPassword());
 
-        // Debugging
-        System.out.println("Password dari input: " + request.getPassword());
-        System.out.println("Password dari database: " + user.getPassword());
+        // Cari user di database berdasarkan username
+        Optional<User> userOptional = userRepository.findByUsername(request.getUsername());
 
-        // Check kecocokan password
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+
+            // Cocokkan password yang sudah di-hash
+            if (!user.getPassword().equals(hashedPassword)) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
+            }
+
+            // Generate token
+            String token = jwtService.generateToken(user);
+
+            return LoginResponse.builder()
+                    .token(token)
+                    .username(user.getUsername())
+                    .privilege(user.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList())
+                    .build();
         }
 
-        String token = jwtService.generateToken(user);
-
-        return LoginResponse.builder()
-                .token(token)
-                .username(user.getUsername())
-                .privilege(user.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList())
-                .build();
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
     }
+
 
     private User authenticateUser(String username, String password) {
         Authentication authentication = authenticationManager.authenticate(
@@ -113,5 +122,20 @@ public class AuthServiceImpl implements AuthService {
         );
 
         return (User) authentication.getPrincipal();
+    }
+
+    private static String encodeMD5(String input) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            md.update(input.getBytes());
+            byte[] digest = md.digest();
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Error encoding password", e);
+        }
     }
 }
