@@ -63,10 +63,17 @@ public class AuthServiceImpl implements AuthService {
         Privilege adminValidator = privilegeService.getOrSave(UserPrivilege.ADMIN_VALIDATOR);
         Privilege leaderValidator = privilegeService.getOrSave(UserPrivilege.LEADER_VALIDATOR);
 
+//        User user = User.builder()
+//                .username(AdminUsername)
+//                .password(passwordEncoder.encode(AdminPassword))
+//                .privilege(List.of(superadmin, adminBD, md, leaderMD, adminValidator, leaderValidator))
+//                .isEnable(true)
+//                .build();
+
         User user = User.builder()
                 .username(AdminUsername)
                 .password(passwordEncoder.encode(AdminPassword))
-                .privilege(List.of(superadmin, adminBD, md, leaderMD, adminValidator, leaderValidator))
+                .privilege(superadmin)
                 .isEnable(true)
                 .build();
 
@@ -91,7 +98,8 @@ public class AuthServiceImpl implements AuthService {
             return LoginResponse.builder()
                     .token(token)
                     .username(user.getUsername())
-                    .privilege(user.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList())
+//                    .privilege(user.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList())
+                    .privilege(List.of(user.getPrivilege().getPrivilegeDesc()))
                     .build();
         }
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");

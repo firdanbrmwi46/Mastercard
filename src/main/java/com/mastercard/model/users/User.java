@@ -37,7 +37,7 @@ public class User implements UserDetails {
     @Column(name = "password", nullable = false)
     private String password;
 
-    @Convert(converter = StatusConverter.class) // Gunakan konverter untuk simpan enum sebagai String
+    @Convert(converter = StatusConverter.class)
     @Column(name = "status", nullable = false)
     private Status status;
 
@@ -52,21 +52,33 @@ public class User implements UserDetails {
     private String foto;
 
     @Column(name = "is_enable", nullable = false)
-    private boolean isEnable = true; // Default: aktif
+    private boolean isEnable = true;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-            name = "user_privileges",
-            joinColumns = @JoinColumn(name = "id"),
-            inverseJoinColumns = @JoinColumn(name = "privilege")
-    )
-    private List<Privilege> privilege;
+//    @ManyToOne(fetch = FetchType.EAGER)
+//    @JoinTable(
+//            name = "user_privileges",
+//            joinColumns = @JoinColumn(name = "user_id"),
+//            inverseJoinColumns = @JoinColumn(name = "privilege")
+//    )
+//    private List<Privilege> privilege;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "privilege")
+    private Privilege privilege;
+
+//    @Override
+//    public Collection<? extends GrantedAuthority> getAuthorities() {
+//        return privilege.stream()
+//                .map(priv -> new SimpleGrantedAuthority("PRIV_" + priv.getPrivilegeDesc()))
+//                .collect(Collectors.toList());
+//    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return privilege.stream()
-                .map(priv -> new SimpleGrantedAuthority("PRIV_" + priv.getPrivilegeDesc())) // Hapus .name()
-                .collect(Collectors.toList());
+        if (privilege == null) {
+            return List.of();
+        }
+        return List.of(new SimpleGrantedAuthority("ROLE_" + privilege.getPrivilegeDesc()));
     }
 
     @Override

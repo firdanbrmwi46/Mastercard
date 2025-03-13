@@ -27,6 +27,6 @@ public class Privilege {
     }
 
     public void setPrivilegeEnum(UserPrivilege privilege) {
-        this.privilegeDesc = privilege.name(); // Simpan sebagai String
+        this.privilegeDesc = privilege.name();
     }
 }
