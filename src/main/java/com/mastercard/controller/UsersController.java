@@ -1,10 +1,13 @@
 package com.mastercard.controller;
 
+import com.mastercard.DTO.request.UserRequest;
 import com.mastercard.model.users.User;
 
 import com.mastercard.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,18 +25,20 @@ public class UsersController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Object> getUser(@PathVariable Long id) {
-        Optional<Object> user = userService.getUserById(id);
+    public ResponseEntity<User> getUser(@PathVariable Long id) {
+        Optional<User> user = userService.getUserById(id);
         return user.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PostMapping
-    public ResponseEntity<?> createUser(@RequestBody User user) {
-        if (userService.existsByUsername(user.getUsername())) {
-            return ResponseEntity.badRequest().body("Username sudah ada!");
+    @PostMapping("/add")
+    public ResponseEntity<?> addUser(@Valid @RequestBody UserRequest request, Authentication authentication) {
+        try {
+            String createdBy = authentication != null ? authentication.getName() : "SYSTEM";
+            User user = userService.addUser(request, createdBy);
+            return ResponseEntity.ok().body("User berhasil ditambahkan: " + user.getUsername());
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
-        User savedUser = userService.saveUser(user);
-        return ResponseEntity.ok(savedUser);
     }
 
     @PutMapping("/{id}")
