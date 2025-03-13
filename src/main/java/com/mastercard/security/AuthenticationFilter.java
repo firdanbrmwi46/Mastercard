@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 public class AuthenticationFilter extends OncePerRequestFilter {
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationFilter.class);
     private final JwtService jwtService;
+
     private static final String AUTH_HEADER = "Authorization";
 
     @Override

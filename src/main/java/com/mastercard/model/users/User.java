@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Entity
@@ -24,12 +25,12 @@ import java.util.stream.Collectors;
 public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name= "user_id", nullable = false)
+    @Column(name = "user_id", nullable = false)
     private Long id;
 
     private String nik;
 
-    @Column(name= "username", nullable = false, unique = true)
+    @Column(name = "username", nullable = false, unique = true)
     private String username;
 
     private String name;
@@ -37,9 +38,10 @@ public class User implements UserDetails {
     @Column(name = "password", nullable = false)
     private String password;
 
-    @Convert(converter = StatusConverter.class) // Gunakan konverter untuk simpan enum sebagai String
-    @Column(name = "status", nullable = false)
-    private Status status;
+    @Convert(converter = StatusConverter.class)
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private Status status = Status.ACTIVE;  // Menggunakan Enum Langsung
 
     private String createdBy;
 
@@ -52,31 +54,33 @@ public class User implements UserDetails {
     private String foto;
 
     @Column(name = "is_enable", nullable = false)
-    private boolean isEnable = true; // Default: aktif
+    private boolean isEnable = true;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-            name = "user_privileges",
-            joinColumns = @JoinColumn(name = "id"),
-            inverseJoinColumns = @JoinColumn(name = "privilege")
-    )
-    private List<Privilege> privilege;
+//    @ManyToMany(fetch = FetchType.EAGER)
+//    @JoinTable(
+//            name = "user_privileges",
+//            joinColumns = @JoinColumn(name = "user_id"),
+//            inverseJoinColumns = @JoinColumn(name = "privilege_id")
+//    )
+//    private Set<Privilege> privilege;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "privilege")
+    private Privilege privilege;
+
+//    @Override
+//    public Collection<? extends GrantedAuthority> getAuthorities() {
+//        return privilege.stream()
+//                .map(priv -> new SimpleGrantedAuthority("PRIV_" + priv.getPrivilegeDesc()))
+//                .collect(Collectors.toSet());
+//    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return privilege.stream()
-                .map(priv -> new SimpleGrantedAuthority("PRIV_" + priv.getPrivilegeDesc())) // Hapus .name()
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public String getPassword() {
-        return password;
-    }
-
-    @Override
-    public String getUsername() {
-        return username;
+        if(privilege == null) {
+            return List.of();
+        }
+        return List.of(new SimpleGrantedAuthority("ROLE_" + privilege.getPrivilegeDesc()));
     }
 
     @Override
@@ -97,5 +101,8 @@ public class User implements UserDetails {
     @Override
     public boolean isEnabled() {
         return isEnable;
+    }
+
+    public void setUserId(Long id) {
     }
 }
