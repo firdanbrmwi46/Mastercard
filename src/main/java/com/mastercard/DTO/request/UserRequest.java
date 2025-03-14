@@ -1,5 +1,6 @@
 package com.mastercard.DTO.request;
 
+import com.mastercard.constant.Status;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
@@ -30,4 +31,8 @@ public class UserRequest {
     private String privilege;
 
     private String teamLeader;
+
+    public Status getStatus() {
+        return null;
+    }
 }

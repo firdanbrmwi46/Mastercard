@@ -3,6 +3,7 @@ package com.mastercard.model.users;
 import com.mastercard.constant.Status;
 import com.mastercard.model.StatusConverter;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.security.core.GrantedAuthority;
@@ -65,6 +66,9 @@ public class User implements UserDetails {
     @JoinColumn(name = "privilege")
     private Privilege privilege;
 
+    public User(String username, String password, Collection<? extends GrantedAuthority> authorities) {
+    }
+
 //    @Override
 //    public Collection<? extends GrantedAuthority> getAuthorities() {
 //        return privilege.stream()
@@ -105,5 +109,13 @@ public class User implements UserDetails {
 
     public Optional<Object> getPrivileges() {
         return null;
+    }
+
+    public void setUpdatedBy(String updatedBy) {
+        
+    }
+
+    public void setPrivilege(@NotBlank(message = "Privilege tidak boleh kosong") String privilege) {
+
     }
 }

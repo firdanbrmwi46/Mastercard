@@ -107,7 +107,7 @@ public class AuthServiceImpl implements AuthService {
         return (User) authentication.getPrincipal();
     }
 
-    private static String encodeMD5(String input) {
+    protected static String encodeMD5(String input) {
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
             md.update(input.getBytes());

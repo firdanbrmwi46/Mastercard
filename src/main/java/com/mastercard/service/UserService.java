@@ -5,42 +5,28 @@ import com.mastercard.model.users.Privilege;
 import com.mastercard.model.users.User;
 import com.mastercard.repository.PrivilegeRepository;
 import com.mastercard.repository.UserRepository;
+import jakarta.validation.constraints.NotBlank;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+
 import java.util.List;
 import java.util.Optional;
 
+import static com.mastercard.service.AuthServiceImpl.encodeMD5;
+
 @Service
+@RequiredArgsConstructor
 public class UserService {
     private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
     private final UserRepository userRepository;
     private final PrivilegeRepository privilegeRepository;
+    private final AuthServiceImpl authServiceImpl;
+    private Class<Object> authentication;
 
-    public UserService(UserRepository userRepository, PrivilegeRepository privilegeRepository) {
-        this.userRepository = userRepository;
-        this.privilegeRepository = privilegeRepository;
-    }
-
-    // Fungsi untuk Mengubah Password ke MD5
-    private String hashMD5(String input) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            md.update(input.getBytes());
-            byte[] digest = md.digest();
-            StringBuilder sb = new StringBuilder();
-            for (byte b : digest) {
-                sb.append(String.format("%02x", b));
-            }
-            return sb.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Error hashing password with MD5", e);
-        }
-    }
-
-    //  Tambahkan User dengan MD5 Hashing
     public User addUser(UserRequest request, String createdBy) {
         LOGGER.info("Menambahkan user baru: {}", request.getUsername());
 
@@ -48,15 +34,18 @@ public class UserService {
             throw new RuntimeException(" Username sudah terdaftar!");
         }
 
+        String loggedInUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+
+
         // Ambil Privilege dari database
-        Privilege privilege = privilegeRepository.findByPrivilegeDesc(request.getPrivilege())
-                .orElseThrow(() -> new RuntimeException("Privilege tidak ditemukan!"));
+        @NotBlank(message = "Privilege tidak boleh kosong") String privilege = String.valueOf(privilegeRepository.findByPrivilegeDesc(request.getPrivilege())
+                .orElseThrow(() -> new RuntimeException("Privilege tidak ditemukan!")));
 
         User user = new User();
         user.setNik(request.getNik());
         user.setUsername(request.getUsername());
         user.setName(request.getName());
-        user.setPassword(hashMD5(request.getPassword()));
+        user.setPassword(encodeMD5(request.getPassword()));
         user.setPrivilege(privilege);
 
         // Handle team leader
@@ -68,20 +57,20 @@ public class UserService {
 
         user.setCreatedBy(createdBy);
         User savedUser = userRepository.save(user);
-        LOGGER.info("User {} berhasil ditambahkan dengan ID: {}", savedUser.getUsername(), savedUser.getId());
+        LOGGER.info("User {} berhasil ditambahkan dengan ID: {}", savedUser.getName(), savedUser.getId());
 
         return savedUser;
     }
 
     // Ambil Semua User
     public List<User> getAllUsers() {
-        LOGGER.info(" Mengambil semua users dari database...");
+
         return userRepository.findAll();
     }
 
     // Ambil User Berdasarkan ID
     public Optional<User> getUserById(Long id) {
-        LOGGER.info(" Mencari user dengan ID: {}", id);
+
         return userRepository.findById(id);
     }
 
