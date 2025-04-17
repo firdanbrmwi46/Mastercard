@@ -32,7 +32,10 @@ public class UserRequest {
 
     private String teamLeader;
 
+    // Method ini bisa digunakan untuk validasi jika perlu
     public Status getStatus() {
-        return null;
+        return Status.ACTIVE;  // Misalnya status aktif jika perlu
     }
 }
+
+

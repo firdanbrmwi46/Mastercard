@@ -1,6 +1,7 @@
 package com.mastercard.model.users;
 
 import com.mastercard.constant.Status;
+import com.mastercard.constant.UserPrivilege;
 import com.mastercard.model.StatusConverter;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -11,7 +12,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "users")
@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 @Builder
 public class User implements UserDetails {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id", nullable = false)
@@ -38,10 +39,12 @@ public class User implements UserDetails {
 
     @Convert(converter = StatusConverter.class)
     @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    private Status status = Status.ACTIVE;  // Menggunakan Enum Langsung
+    private Status status = Status.ACTIVE;
 
     private String createdBy;
+
+    @Column(name = "updated_by")
+    private String updatedBy;
 
     @CreationTimestamp
     @Column(updatable = false, name = "created_date")
@@ -54,31 +57,19 @@ public class User implements UserDetails {
     @Column(name = "is_enable", nullable = false)
     private boolean isEnable = true;
 
-//    @ManyToMany(fetch = FetchType.EAGER)
-//    @JoinTable(
-//            name = "user_privileges",
-//            joinColumns = @JoinColumn(name = "user_id"),
-//            inverseJoinColumns = @JoinColumn(name = "privilege_id")
-//    )
-//    private Set<Privilege> privilege;
-
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "privilege")
+    @JoinColumn(name = "privilege", referencedColumnName = "privilege_desc")
     private Privilege privilege;
 
+    // Optional constructor (can be removed if unused)
     public User(String username, String password, Collection<? extends GrantedAuthority> authorities) {
+        this.username = username;
+        this.password = password;
     }
-
-//    @Override
-//    public Collection<? extends GrantedAuthority> getAuthorities() {
-//        return privilege.stream()
-//                .map(priv -> new SimpleGrantedAuthority("PRIV_" + priv.getPrivilegeDesc()))
-//                .collect(Collectors.toSet());
-//    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        if(privilege == null) {
+        if (privilege == null) {
             return List.of();
         }
         return List.of(new SimpleGrantedAuthority("ROLE_" + privilege.getPrivilegeDesc()));
@@ -104,18 +95,27 @@ public class User implements UserDetails {
         return isEnable;
     }
 
-    public void setUserId(Long id) {
+    // Method untuk set privilege menjadi TEAM_LEADER
+    public void setPrivilegeToTeamLeader() {
+        this.privilege = new Privilege();
+        this.privilege.setPrivilegeEnum(UserPrivilege.TEAM_LEADER);
     }
 
-    public Optional<Object> getPrivileges() {
-        return null;
+    // Untuk set privilege dari String (misal dari form input)
+    public void setPrivilege(String privilegeDesc) {
+        if (privilegeDesc == null) {
+            this.privilege = null;
+            return;
+        }
+        this.privilege = new Privilege();
+        this.privilege.setPrivilegeEnum(UserPrivilege.fromDbValue(privilegeDesc));
     }
 
     public void setUpdatedBy(String updatedBy) {
-        
+        this.updatedBy = updatedBy;
     }
 
-    public void setPrivilege(@NotBlank(message = "Privilege tidak boleh kosong") String privilege) {
-
+    public void setPrivilege(Privilege privilege) {
+        this.privilege = privilege;
     }
 }

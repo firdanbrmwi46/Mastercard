@@ -1,7 +1,9 @@
 package com.mastercard.controller;
 
 import com.mastercard.DTO.request.UserRequest;
+import com.mastercard.constant.UserPrivilege;
 import com.mastercard.details.CustomUserDetails;
+import com.mastercard.model.users.Privilege;
 import com.mastercard.model.users.User;
 
 import com.mastercard.service.UserService;
@@ -16,7 +18,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/v1/users")
 public class UsersController {
     @Autowired
     private UserService userService;
@@ -36,13 +38,38 @@ public class UsersController {
     public ResponseEntity<?> addUser(@Valid @RequestBody UserRequest request, Authentication authentication) {
         try {
             String createdBy = "SYSTEM";
-
             if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
                 CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
                 createdBy = userDetails.getRealName();
             }
 
-            User user = userService.addUser(request, createdBy);
+            // Convert privilege string to UserPrivilege enum
+            UserPrivilege userPrivilegeEnum = UserPrivilege.fromDbValue(request.getPrivilege());
+
+            // Validasi apakah privilege adalah MD, jika ya, maka teamLeader harus diisi
+            if (userPrivilegeEnum == UserPrivilege.MD && (request.getTeamLeader() == null || request.getTeamLeader().isEmpty())) {
+                return ResponseEntity.badRequest().body("Team Leader harus diisi jika privilege adalah MD");
+            }
+
+            // Set the privilege in Privilege object
+            Privilege privilege = new Privilege();
+            privilege.setPrivilegeEnum(userPrivilegeEnum);  // Assign the correct UserPrivilege to Privilege object
+
+            User user = new User();
+            user.setNik(request.getNik());
+            user.setName(request.getName());
+            user.setUsername(request.getUsername());
+            user.setPassword(request.getPassword());
+            user.setPrivilege(privilege);
+            user.setCreatedBy(createdBy);
+
+            // Jika privilege MD, maka teamLeader harus diisi
+            if (userPrivilegeEnum == UserPrivilege.MD) {
+                user.setTlName(request.getTeamLeader());
+            }
+
+            userService.addUser(request, createdBy);  // Call your service to save the user
+
             return ResponseEntity.ok().body("User berhasil ditambahkan: " + user.getUsername());
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

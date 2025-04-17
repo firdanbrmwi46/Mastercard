@@ -1,32 +1,29 @@
 package com.mastercard.model.users;
 
-import com.mastercard.constant.TableName;
 import com.mastercard.constant.UserPrivilege;
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = TableName.PRIVILEGE)
+@Table(name = "user_privileges")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class Privilege {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long privilege;
-
-    private Integer role;
-
     @Column(name = "privilege_desc", unique = true, nullable = false)
     private String privilegeDesc;
 
+    private Integer role;
+
     public UserPrivilege getPrivilegeEnum() {
-        return UserPrivilege.valueOf(this.privilegeDesc);
+        return UserPrivilege.fromDbValue(this.privilegeDesc);
     }
 
     public void setPrivilegeEnum(UserPrivilege privilege) {
-        this.privilegeDesc = privilege.name(); // Simpan sebagai String
+        this.privilegeDesc = privilege.getDbValue();
     }
 }

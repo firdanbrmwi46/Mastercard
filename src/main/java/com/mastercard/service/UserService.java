@@ -24,8 +24,6 @@ public class UserService {
     private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
     private final UserRepository userRepository;
     private final PrivilegeRepository privilegeRepository;
-    private final AuthServiceImpl authServiceImpl;
-    private Class<Object> authentication;
 
     public User addUser(UserRequest request, String createdBy) {
         LOGGER.info("Menambahkan user baru: {}", request.getUsername());
@@ -34,19 +32,16 @@ public class UserService {
             throw new RuntimeException(" Username sudah terdaftar!");
         }
 
-        String loggedInUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-
-
         // Ambil Privilege dari database
-        @NotBlank(message = "Privilege tidak boleh kosong") String privilege = String.valueOf(privilegeRepository.findByPrivilegeDesc(request.getPrivilege())
-                .orElseThrow(() -> new RuntimeException("Privilege tidak ditemukan!")));
+        Privilege privilege = privilegeRepository.findByPrivilegeDesc(request.getPrivilege())
+                .orElseThrow(() -> new RuntimeException("Privilege tidak ditemukan!"));
 
         User user = new User();
         user.setNik(request.getNik());
         user.setUsername(request.getUsername());
         user.setName(request.getName());
         user.setPassword(encodeMD5(request.getPassword()));
-        user.setPrivilege(privilege);
+        user.setPrivilege(privilege);  // Set Privilege dengan objek Privilege
 
         // Handle team leader
         if ("4".equals(request.getPrivilege()) && request.getTeamLeader() != null) {
@@ -95,5 +90,9 @@ public class UserService {
         }
         userRepository.deleteById(id);
         LOGGER.info("User dengan ID {} berhasil dihapus", id);
+    }
+
+    public void addUser(User user) {
+
     }
 }
